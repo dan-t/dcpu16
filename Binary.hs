@@ -8,32 +8,32 @@ import Data.Word
 import Data.List
 import Numeric
 
-regA = 0x00 :: Word32
-regB = 0x01 :: Word32
-regC = 0x02 :: Word32
-regX = 0x03 :: Word32
-regY = 0x04 :: Word32
-regZ = 0x05 :: Word32
-regI = 0x06 :: Word32
-regJ = 0x07 :: Word32
+bregA = 0x00 :: Word32
+bregB = 0x01 :: Word32
+bregC = 0x02 :: Word32
+bregX = 0x03 :: Word32
+bregY = 0x04 :: Word32
+bregZ = 0x05 :: Word32
+bregI = 0x06 :: Word32
+bregJ = 0x07 :: Word32
 
-ram :: Word32 -> Word32
-ram addr = (addr .<<. 16) .|. 0x1e
+bram :: Word32 -> Word32
+bram addr = (addr .<<. 16) .|. 0x1e
 
-pop  = 0x18 :: Word32
-peek = 0x19 :: Word32
-push = 0x1a :: Word32
-sp   = 0x1b :: Word32
-pc   = 0x1c :: Word32
-o    = 0x1d :: Word32
+bpop  = 0x18 :: Word32
+bpeek = 0x19 :: Word32
+bpush = 0x1a :: Word32
+bsp   = 0x1b :: Word32
+bpc   = 0x1c :: Word32
+bo    = 0x1d :: Word32
 
-lit :: Word32 -> Word32
-lit i
+blit :: Word32 -> Word32
+blit i
    | i > 0x1f  = (i .<<. 16) .|. 0x1f
    | otherwise = i + 0x20
 
-jsr :: Word32 -> [Word16]
-jsr a
+bjsr :: Word32 -> [Word16]
+bjsr a
    | nextWordA = [firstWord, secondWord]
    | otherwise = [firstWord]
    where
@@ -42,21 +42,21 @@ jsr a
       nextWordA  = a .&. 0xffff0000 /= 0
 
 
-set = instruc 0x1
-add = instruc 0x2
-sub = instruc 0x3
-mul = instruc 0x4
-div = instruc 0x5
-mod = instruc 0x6
-shl = instruc 0x7
-shr = instruc 0x8
-and = instruc 0x9
-bor = instruc 0xa
-xor = instruc 0xb
-ife = instruc 0xc
-ifn = instruc 0xd
-ifg = instruc 0xe
-ifb = instruc 0xf
+bset = instruc 0x1
+badd = instruc 0x2
+bsub = instruc 0x3
+bmul = instruc 0x4
+bdiv = instruc 0x5
+bmod = instruc 0x6
+bshl = instruc 0x7
+bshr = instruc 0x8
+band = instruc 0x9
+bbor = instruc 0xa
+bxor = instruc 0xb
+bife = instruc 0xc
+bifn = instruc 0xd
+bifg = instruc 0xe
+bifb = instruc 0xf
 
 instruc :: Word16 -> Word32 -> Word32 -> [Word16]
 instruc opcode a b
