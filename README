@@ -1,0 +1,9 @@
+
+Yet another emulator for the dcpu16. (http://0x10c.com/doc/dcpu-16.txt)
+
+> ghci Emulator.hs
+*Emulator> runSimpleTest
+*Emulator> runDCPU $ dcpuFromList (bset bregA (blit 0x1))
+
+When the program ends the emulator currently stops with:
+*** Exception: Invalid non basic opcode: 0
