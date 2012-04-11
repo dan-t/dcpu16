@@ -13,17 +13,16 @@ import Control.Monad
 import Control.Monad.ST
 import System.Environment
 import Numeric
-import Binary hiding ((.<<.), (.>>.))
+import BinaryCode hiding ((.<<.), (.>>.))
 
 
 runSimpleTest :: IO ()
 runSimpleTest = do
-   let instr1 = bset bregA (blit 0x1)
-       instr2 = badd bregA (blit 0x2)
-       instr3 = bset bregB (blit 0x2)
-       instr4 = bsub bregA bregB
-
-   runDCPU $ dcpuFromList (instr1 ++ instr2 ++ instr3 ++ instr4)
+   runDCPU $ dcpuFromList (binaryCode $ do
+      setB bregA (blit 0x1)
+      addB bregA (blit 0x2)
+      setB bregB (blit 0x2)
+      subB bregA bregB)
 
 
 runDCPU :: DCPU_Data -> IO ()
