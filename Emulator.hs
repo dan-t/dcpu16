@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction, BangPatterns #-}
+{-# LANGUAGE NoMonomorphismRestriction, BangPatterns, TupleSections #-}
 
 module Emulator where
 
@@ -10,6 +10,7 @@ import qualified Data.List as L
 import qualified Data.ByteString as B
 import qualified Control.Monad.State.Strict as S
 import Control.Monad
+import Control.Applicative
 import Control.Monad.ST
 import System.Environment
 import Numeric
@@ -18,11 +19,11 @@ import BinaryCode hiding ((.<<.), (.>>.))
 
 runSimpleTest :: IO ()
 runSimpleTest = do
-   runDCPU $ dcpuFromList (binaryCode $ do
+   runDCPU . dcpuFromList . binaryCode $ do
       setB bregA (blit 0x1)
       addB bregA (blit 0x2)
       setB bregB (blit 0x2)
-      subB bregA bregB)
+      subB bregA bregB
 
 
 runDCPU :: DCPU_Data -> IO ()
@@ -109,11 +110,10 @@ readInstruction = do
    word <- readWord
    case opcode word of
         NonBasicOp | valA word /= 0x01 -> error $ "Invalid non basic opcode: " ++ (showHex (valA word) "")
-                   | otherwise -> do (val, _) <- readValue $ valB word
-                                     return $! NonBasicInstruction JSR val
+                   | otherwise -> NonBasicInstruction JSR . fst <$> readValue (valB word)
 
-        basicOp -> do a      <- readValue $ valA word
-                      (b, _) <- readValue $ valB word
+        basicOp -> do a <- readValue $ valA word
+                      b <- fst <$> readValue (valB word)
                       return $! BasicInstruction basicOp a b
    where
       opcode = toEnum . fromIntegral . (.&. 0xf)
@@ -124,20 +124,17 @@ readInstruction = do
 readValue :: Word16 -> DCPU (Word16, Location)
 readValue word
    | word <= 0x07 = do let reg = toEnum $ fromIntegral word
-                       val <- readRegister reg
-                       return $! (val, Register reg)
+                       (, Register reg) <$> readRegister reg
 
    | word <= 0x0f = do let reg = toEnum $ fromIntegral (word - 0x08)
                        addr <- readRegister reg
-                       ramVal <- readRam addr
-                       return $! (ramVal, RAM addr)
+                       (, RAM addr) <$> readRam addr
 
    | word <= 0x17 = do let reg = toEnum $ fromIntegral (word - 0x10)
                        regVal <- readRegister reg
                        nextWord <- readWord
                        let addr = nextWord + regVal
-                       ramVal <- readRam addr
-                       return $! (ramVal, RAM addr)
+                       (, RAM addr) <$> readRam addr
 
    | word == 0x18 = S.state (\dcpu ->
       let sp_ = sp dcpu
@@ -150,17 +147,11 @@ readValue word
       let sp' = (sp dcpu) - 1
           in ((get (ram dcpu) sp', RAM sp'), dcpu {sp = sp'}))
 
-   | word == 0x1b = S.gets (\dcpu -> sp dcpu) >>= (\sp -> return $! (sp, SP))
-   | word == 0x1c = S.gets (\dcpu -> pc dcpu) >>= (\pc -> return $! (pc, PC))
-   | word == 0x1d = S.gets (\dcpu -> ov dcpu) >>= (\ov -> return $! (ov, O))
-
-   | word == 0x1e = do addr <- readWord
-                       val <- readRam addr
-                       return $! (val, RAM addr)
-
-   | word == 0x1f = do nextWord <- readWord
-                       return $! (nextWord, Literal)
-
+   | word == 0x1b = (, SP) . sp <$> S.get
+   | word == 0x1c = (, PC) . pc <$> S.get
+   | word == 0x1d = (,  O) . ov <$> S.get
+   | word == 0x1e = readWord >>= \addr -> (, RAM addr) <$> readRam addr
+   | word == 0x1f = (, Literal) <$> readWord
    | otherwise    = return $! (word - 0x20, Literal)
 
 
@@ -232,6 +223,7 @@ showRam f ram = V.foldl' foldRam ("ram:", 0) ram
 
 
 ramSize    = 0x10000
+videoRam   = (0x8000, 0x8400)
 numRegs    = 8
 stackBegin = 0xffff
 
