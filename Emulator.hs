@@ -18,7 +18,7 @@ import BinaryCode hiding ((.<<.), (.>>.))
 
 
 runSimpleTest :: IO ()
-runSimpleTest = do
+runSimpleTest =
    runDCPU . dcpuFromList . binaryCode $ do
       setB bregA (blit 0x1)
       addB bregA (blit 0x2)
@@ -26,23 +26,23 @@ runSimpleTest = do
       subB bregA bregB
 
 
-runDCPU :: DCPU_Data -> IO ()
+runDCPU :: DCPUData -> IO ()
 runDCPU dcpu = do
    dcpu' <- execStep dcpu
-   putStrLn $ show dcpu'
+   print dcpu'
    runDCPU dcpu'
 
 
-execStep :: DCPU_Data -> IO DCPU_Data
+execStep :: DCPUData -> IO DCPUData
 execStep dcpu = do
    let (instruc, dcpu') = S.runState readInstruction dcpu
-   putStrLn $ show instruc
+   print instruc
    return $! S.execState (execInstruction instruc) dcpu'
 
 
-dcpuFromList :: [Word16] -> DCPU_Data
+dcpuFromList :: [Word16] -> DCPUData
 dcpuFromList binary =
-   DCPU_Data {ram = initRam binary, regs = V.replicate numRegs 0,
+   DCPUData {ram = initRam binary, regs = V.replicate numRegs 0,
               pc = 0, sp = stackBegin, ov = 0}
    where
       initRam = V.unfoldrN ramSize (\ls ->
@@ -53,7 +53,7 @@ dcpuFromList binary =
 
 execInstruction :: Instruction -> DCPU ()
 execInstruction (BasicInstruction opcode (valA, locA) valB)
-   | opcode == NonBasicOp = error $ "Unexpected non basic opcode!"
+   | opcode == NonBasicOp = error "Unexpected non basic opcode!"
 
    | opcode <= XOR = do
       let (a, b)     = (toW32 valA, toW32 valB)
@@ -68,8 +68,8 @@ execInstruction (BasicInstruction opcode (valA, locA) valB)
                                            in (r, (a .<<. 16) `div` b)
 
                             MOD -> if b == 0 then (0, 0) else (a `mod` b, 0)
-                            SHL -> let r = a .<<. (toInt b) in (r, r .>>. 16)
-                            SHR -> let r = a .>>. (toInt b) in (r, (a .<<. 16) .>>. (toInt b))
+                            SHL -> let r = a .<<. toInt b in (r, r .>>. 16)
+                            SHR -> let r = a .>>. toInt b in (r, (a .<<. 16) .>>. toInt b)
                             AND -> (a .&. b, 0)
                             BOR -> (a .|. b, 0)
                             XOR -> (a `xor` b, 0)
@@ -77,12 +77,12 @@ execInstruction (BasicInstruction opcode (valA, locA) valB)
       setValue (toW16 res) locA
       S.modify (\dcpu -> dcpu {ov = toW16 ovf})
 
-   | opcode == IFE = unless (valA == valB)       $ readWord >> return ()
-   | opcode == IFN = unless (valA /= valB)       $ readWord >> return ()
-   | opcode == IFG = unless (valA >  valB)       $ readWord >> return ()
-   | opcode == IFB = unless (valA .&. valB /= 0) $ readWord >> return ()
+   | opcode == IFE = unless (valA == valB)       $ void readWord
+   | opcode == IFN = unless (valA /= valB)       $ void readWord
+   | opcode == IFG = unless (valA >  valB)       $ void readWord
+   | opcode == IFB = unless (valA .&. valB /= 0) $ void readWord
 
-   | otherwise = error $ "Unexpected case in execInstruction!"
+   | otherwise = error "Unexpected case in execInstruction!"
 
    where
       toInt :: Integral a => a -> Int
@@ -95,21 +95,21 @@ execInstruction (BasicInstruction opcode (valA, locA) valB)
       toW16 = fromIntegral
 
 
-execInstruction (NonBasicInstruction opcode val) = do
+execInstruction (NonBasicInstruction opcode val) =
    case opcode of
         JSR -> S.modify (\dcpu ->
            let sp' = sp dcpu - 1
                in dcpu {ram = set (ram dcpu) sp' (pc dcpu + 1),
                         sp = sp', pc = val})
 
-        InvalidNonBasicOp -> error $ "Executing invalid non basic instruction!"
+        InvalidNonBasicOp -> error "Executing invalid non basic instruction!"
 
 
 readInstruction :: DCPU Instruction
 readInstruction = do
    word <- readWord
    case opcode word of
-        NonBasicOp | valA word /= 0x01 -> error $ "Invalid non basic opcode: " ++ (showHex (valA word) "")
+        NonBasicOp | valA word /= 0x01 -> error $ "Invalid non basic opcode: " ++ showHex (valA word) ""
                    | otherwise -> NonBasicInstruction JSR . fst <$> readValue (valB word)
 
         basicOp -> do a <- readValue $ valA word
@@ -144,7 +144,7 @@ readValue word
       let sp_ = sp dcpu in (get (ram dcpu) sp_, RAM sp_))
 
    | word == 0x1a = S.state (\dcpu ->
-      let sp' = (sp dcpu) - 1
+      let sp' = sp dcpu - 1
           in ((get (ram dcpu) sp', RAM sp'), dcpu {sp = sp'}))
 
    | word == 0x1b = (, SP) . sp <$> S.get
@@ -152,14 +152,14 @@ readValue word
    | word == 0x1d = (,  O) . ov <$> S.get
    | word == 0x1e = readWord >>= \addr -> (, RAM addr) <$> readRam addr
    | word == 0x1f = (, Literal) <$> readWord
-   | otherwise    = return $! (word - 0x20, Literal)
+   | otherwise    = return (word - 0x20, Literal)
 
 
 readWord :: DCPU Word16
 readWord = do
    dcpu <- S.get
    let word = get (ram dcpu) (pc dcpu)
-   S.put dcpu {pc = (pc dcpu) + 1}
+   S.put dcpu {pc = pc dcpu + 1}
    return $! word
 
 readRegister :: RegName -> DCPU Word16
@@ -173,16 +173,16 @@ data Instruction = BasicInstruction Opcode (Value, Location) Value
 
 instance Show Instruction where
    show (BasicInstruction opcode (valA, locA) valB) =
-      "(BasicInstruction " ++ (show opcode) ++ " (" ++ (showHex valA "") ++ ", " ++ (show locA) ++ ") " ++ (showHex valB "") ++ ")"
+      "(BasicInstruction " ++ show opcode ++ " (" ++ showHex valA "" ++ ", " ++ (show locA) ++ ") " ++ showHex valB "" ++ ")"
    show (NonBasicInstruction opcode val) =
-      "(NonBasicInstruction " ++ (show opcode) ++ " " ++ (showHex val "") ++ ")"
+      "(NonBasicInstruction " ++ show opcode ++ " " ++ showHex val "" ++ ")"
 
 type Value = Word16
 data Location = RAM Word16 | Register RegName | SP | PC | O | Literal
 
 instance Show Location where
-   show (RAM addr)      = "(RAM " ++ (showHex addr "") ++ ")"
-   show (Register name) = "(Register " ++ (show name) ++ ")"
+   show (RAM addr)      = "(RAM " ++ showHex addr "" ++ ")"
+   show (Register name) = "(Register " ++ show name ++ ")"
    show SP              = "SP"
    show PC              = "PC"
    show O               = "O"
@@ -196,9 +196,9 @@ data Opcode = NonBasicOp | SET | ADD | SUB | MUL | DIV | MOD |
 
 data NonBasicOpcode = InvalidNonBasicOp | JSR deriving (Show, Eq, Enum)
 
-type DCPU = S.State DCPU_Data
+type DCPU = S.State DCPUData
 
-data DCPU_Data = DCPU_Data {
+data DCPUData = DCPUData {
    ram  :: ! (V.Vector Word16), -- ram
    regs :: ! (V.Vector Word16), -- registers
    pc   :: ! Word16,            -- program counter
@@ -206,20 +206,20 @@ data DCPU_Data = DCPU_Data {
    ov   :: ! Word16             -- overflow
    }
 
-instance Show DCPU_Data where
-   show (DCPU_Data ram regs pc sp ov) =
-      "DCPU: regs=" ++ (V.foldl' (\str e -> (if str /= "[" then str ++ "," else str) ++ showHex e "") "[" regs) ++ "]" ++
-      ", pc=" ++ (showHex pc "") ++ ", sp=" ++ (showHex sp "") ++ ", ov=" ++ (showHex ov "")
+instance Show DCPUData where
+   show (DCPUData ram regs pc sp ov) =
+      "DCPU: regs=" ++ V.foldl' (\str e -> (if str /= "[" then str ++ "," else str) ++ showHex e "") "[" regs ++ "]" ++
+      ", pc=" ++ showHex pc "" ++ ", sp=" ++ showHex sp "" ++ ", ov=" ++ showHex ov ""
 
 
-showRam f ram = V.foldl' foldRam ("ram:", 0) ram
+showRam f = V.foldl' foldRam ("ram:", 0)
    where
       foldRam (str, addr) cell =
          if f cell
             then (str ++ putCell addr cell, addr + 1)
             else (str, addr + 1)
 
-      putCell addr cell = " [" ++ (showHex addr "]=") ++ (showHex cell "")
+      putCell addr cell = " [" ++ showHex addr "]=" ++ showHex cell ""
 
 
 ramSize    = 0x10000
@@ -249,4 +249,4 @@ set vector index value = runST (setM vector (fromIntegral index) value)
 
 
 get :: Integral a => V.Vector Word16 -> a -> Word16
-get vector index = vector ! (fromIntegral index)
+get vector index = vector ! fromIntegral index
