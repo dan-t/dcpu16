@@ -1,14 +1,16 @@
 
 module Parser where
 
-import Control.Applicative
+import Control.Applicative ((<*>), (<$>), (*>), (<*), (<|>), pure)
 import qualified Data.Attoparsec.Text as P
 import qualified Data.Attoparsec.Combinator as PC
-import Data.Word
-import Data.Text as T
-import Data.Char
+import qualified Data.Text as T
+import Data.Text (Text)
+import Data.Word (Word16)
+import Data.Char (isAlpha)
+import qualified CommonTypes as CT
 
-parse :: T.Text -> P.Result Program
+parse :: Text -> P.Result Program
 parse text = P.feed (P.parse program text) T.empty
 
 program :: P.Parser Program
@@ -39,25 +41,25 @@ label = Label <$> (P.char ':' *> P.takeWhile1 isAlpha)
 comment :: P.Parser Statement
 comment = Comment <$> (P.char ';' *> skipWS *> P.takeTill P.isEndOfLine)
 
-nonBasicOpcode :: P.Parser NonBasicOpcode
-nonBasicOpcode = str "JSR" *> pure JSR
+nonBasicOpcode :: P.Parser CT.NonBasicOpcode
+nonBasicOpcode = str "JSR" *> pure CT.JSR
 
-opcode :: P.Parser Opcode
-opcode = str "SET" *> pure SET <|>
-         str "ADD" *> pure ADD <|>
-         str "SUB" *> pure SUB <|>
-         str "MUL" *> pure MUL <|>
-         str "DIV" *> pure DIV <|>
-         str "MOD" *> pure MOD <|>
-         str "SHL" *> pure SHL <|>
-         str "SHR" *> pure SHR <|>
-         str "AND" *> pure AND <|>
-         str "BOR" *> pure BOR <|>
-         str "XOR" *> pure XOR <|>
-         str "IFE" *> pure IFE <|>
-         str "IFN" *> pure IFN <|>
-         str "IFG" *> pure IFG <|>
-         str "IFB" *> pure IFB
+opcode :: P.Parser CT.Opcode
+opcode = str "SET" *> pure CT.SET <|>
+         str "ADD" *> pure CT.ADD <|>
+         str "SUB" *> pure CT.SUB <|>
+         str "MUL" *> pure CT.MUL <|>
+         str "DIV" *> pure CT.DIV <|>
+         str "MOD" *> pure CT.MOD <|>
+         str "SHL" *> pure CT.SHL <|>
+         str "SHR" *> pure CT.SHR <|>
+         str "AND" *> pure CT.AND <|>
+         str "BOR" *> pure CT.BOR <|>
+         str "XOR" *> pure CT.XOR <|>
+         str "IFE" *> pure CT.IFE <|>
+         str "IFN" *> pure CT.IFN <|>
+         str "IFG" *> pure CT.IFG <|>
+         str "IFB" *> pure CT.IFB
 
 value :: P.Parser Value
 value = ramAt <|> register <|> sp <|> pc <|> o <|> pop <|>
@@ -74,14 +76,14 @@ literal = (str "0x" *> P.hexadecimal) <|> P.decimal
 
 register :: P.Parser Value
 register = Register <$>
-              (P.char 'A' *> pure A <|>
-               P.char 'B' *> pure B <|>
-               P.char 'C' *> pure C <|>
-               P.char 'X' *> pure X <|>
-               P.char 'Y' *> pure Y <|>
-               P.char 'Z' *> pure Z <|>
-               P.char 'I' *> pure I <|>
-               P.char 'J' *> pure J)
+              (P.char 'A' *> pure CT.A <|>
+               P.char 'B' *> pure CT.B <|>
+               P.char 'C' *> pure CT.C <|>
+               P.char 'X' *> pure CT.X <|>
+               P.char 'Y' *> pure CT.Y <|>
+               P.char 'Z' *> pure CT.Z <|>
+               P.char 'I' *> pure CT.I <|>
+               P.char 'J' *> pure CT.J)
 
 sp = str "SP" *> pure SP
 pc = str "PC" *> pure PC
@@ -91,7 +93,7 @@ peek = str "PEEK" *> pure PEEK
 push = str "PUSH" *> pure PUSH
 
 str :: String -> P.Parser Text
-str s = P.string $ pack s
+str s = P.string $ T.pack s
 
 skipWS = P.skipWhile P.isHorizontalSpace
 
@@ -101,20 +103,12 @@ type Program = [Line]
 
 type Line = [Statement]
 
-data Statement = Instruction Opcode Value Value
-                 | NonBasicInstruction NonBasicOpcode Value
+data Statement = Instruction CT.Opcode Value Value
+                 | NonBasicInstruction CT.NonBasicOpcode Value
                  | Label Text
                  | Comment Text
                  deriving (Show)
 
-data Opcode = SET | ADD | SUB | MUL | DIV | MOD | SHL |
-              SHR | AND | BOR | XOR | IFE | IFN | IFG | IFB
-              deriving (Show)
-
-data NonBasicOpcode = JSR deriving (Show)
-
-data Value = RAM Word16 | Register RegName | SP | PC | O |
+data Value = RAM Word16 | Register CT.RegName | SP | PC | O |
              POP | PEEK | PUSH | Literal Word16 | LabelValue Text
              deriving (Show)
-
-data RegName = A | B | C | X | Y | Z | I | J deriving (Show)

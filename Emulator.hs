@@ -54,8 +54,6 @@ dcpuFromList binary =
 
 execInstruction :: Instruction -> DCPU ()
 execInstruction (BasicInstruction opcode (valA, locA) valB)
-   | opcode == NonBasicOp = error "Unexpected non basic opcode!"
-
    | opcode <= XOR = do
       let (a, b)     = (toW32 valA, toW32 valB)
           (res, ovf) = case opcode of
@@ -103,23 +101,18 @@ execInstruction (NonBasicInstruction opcode val) =
                in dcpu {ram = set (ram dcpu) sp' (pc dcpu + 1),
                         sp = sp', pc = val})
 
-        InvalidNonBasicOp -> error "Executing invalid non basic instruction!"
-
 
 readInstruction :: DCPU Instruction
 readInstruction = do
    word <- readWord
-   case opcode word of
-        NonBasicOp | valA word /= 0x01 -> error $ "Invalid non basic opcode: " ++ showHex (valA word) ""
-                   | otherwise -> NonBasicInstruction JSR . fst <$> readValue (valB word)
-
-        basicOp -> do a <- readValue $ valA word
-                      b <- fst <$> readValue (valB word)
-                      return $! BasicInstruction basicOp a b
+   case word of
+        0x0       -> NonBasicInstruction (nonBasicOpcode $ valA word) . fst <$> readValue (valB word)
+        otherwise -> do a <- readValue $ valA word
+                        b <- fst <$> readValue (valB word)
+                        return $! BasicInstruction (opcode word) a b
    where
-      opcode = toEnum . fromIntegral . (.&. 0xf)
-      valA   = (.&. 0x3f) . (.>>. 4)
-      valB   = (.&. 0x3f) . (.>>. 10)
+      valA = (.&. 0x3f) . (.>>. 4)
+      valB = (.&. 0x3f) . (.>>. 10)
 
 
 readValue :: Word16 -> DCPU (Word16, Location)
@@ -188,14 +181,6 @@ instance Show Location where
    show PC              = "PC"
    show O               = "O"
    show Literal         = "Literal"
-
-data RegName = A | B | C | X | Y | Z | I | J deriving (Show, Eq, Enum)
-
-data Opcode = NonBasicOp | SET | ADD | SUB | MUL | DIV | MOD |
-              SHL | SHR | AND | BOR | XOR | IFE | IFN | IFG | IFB
-              deriving (Show, Eq, Ord, Enum)
-
-data NonBasicOpcode = InvalidNonBasicOp | JSR deriving (Show, Eq, Enum)
 
 type DCPU = S.State DCPUData
 
