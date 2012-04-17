@@ -14,16 +14,17 @@ import Control.Applicative
 import Control.Monad.ST
 import System.Environment
 import Numeric
-import BinaryCode hiding ((.<<.), (.>>.))
+import BinaryCode (setM, addM, subM, regA, regB, lit, binaryCode)
+import CommonTypes
 
 
 runSimpleTest :: IO ()
 runSimpleTest =
    runDCPU . dcpuFromList . binaryCode $ do
-      setB bregA (blit 0x1)
-      addB bregA (blit 0x2)
-      setB bregB (blit 0x2)
-      subB bregA bregB
+      setM regA (lit 0x1)
+      addM regA (lit 0x2)
+      setM regB (lit 0x2)
+      subM regA regB
 
 
 runDCPU :: DCPUData -> IO ()
