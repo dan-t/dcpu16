@@ -69,7 +69,7 @@ labelValue :: P.Parser Value
 labelValue = LabelValue <$> P.takeWhile1 isAlpha
 
 ramAt :: P.Parser Value
-ramAt = RAM <$> (P.char '[' *> skipWS *> literal <* skipWS <* P.char ']')
+ramAt = RAM <$> (P.char '[' *> skipWS *> value <* skipWS <* P.char ']')
 
 literal :: P.Parser Word16
 literal = (str "0x" *> P.hexadecimal) <|> P.decimal
@@ -109,6 +109,6 @@ data Statement = Instruction CT.Opcode Value Value
                  | Comment Text
                  deriving (Show)
 
-data Value = RAM Word16 | Register CT.RegName | SP | PC | O |
+data Value = RAM Value | Register CT.RegName | SP | PC | O |
              POP | PEEK | PUSH | Literal Word16 | LabelValue Text
              deriving (Show)
