@@ -1,0 +1,13 @@
+Name:          dcpu16
+Version:       0.1
+Author:        Daniel Trstenjak
+Maintainer:    daniel.trstenjak@gmail.com
+Build-Type:    Simple
+Cabal-Version: >=1.6
+
+Executable emu16
+  Main-is:       Emulator.hs
+  ghc-options:   -O2 -funbox-strict-fields -pgmPcpphs -optP--cpp
+  extensions:    CPP
+  cpp-options:   -I. -DCABAL
+  Build-Depends: base >= 3 && < 5, mtl >= 2.0.1.0 && < 2.1, bytestring >= 0.9.1.10 && < 1.0, vector >= 0.9.1 && < 1.0, cmdargs >= 0.9.5 && < 1.0, dlist >= 0.5 && < 0.6

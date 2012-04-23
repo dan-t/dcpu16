@@ -1,6 +1,6 @@
-{-# LANGUAGE NoMonomorphismRestriction, BangPatterns, TupleSections #-}
+{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, BangPatterns, TupleSections #-}
 
-module Emulator where
+module Main where
 
 import Data.Vector.Unboxed as V hiding ((++))
 import qualified Data.Vector.Unboxed.Mutable as VM
@@ -16,29 +16,59 @@ import System.Environment
 import Numeric
 import BinaryCode (setM, addM, subM, regA, regB, lit, binaryCode)
 import CommonTypes
+import EmuArgs
+
+
+main :: IO ()
+main = do
+   args <- emu16Args
+   when (L.null $ binary args) $
+      error "No binary file given!"
+
+   bs <- B.readFile (binary args)
+   runDCPU (verbose args) $ dcpuFromByteString bs
 
 
 runSimpleTest :: IO ()
 runSimpleTest =
-   runDCPU . dcpuFromList . binaryCode $ do
+   runDCPU True . dcpuFromList . binaryCode $ do
       setM regA (lit 0x1)
       addM regA (lit 0x2)
       setM regB (lit 0x2)
       subM regA regB
 
 
-runDCPU :: DCPUData -> IO ()
-runDCPU dcpu = do
-   dcpu' <- execStep dcpu
-   print dcpu'
-   runDCPU dcpu'
+runDCPU :: Bool -> DCPUData -> IO ()
+runDCPU verbose dcpu = do
+   dcpu' <- execStep verbose dcpu
+   when verbose $ print dcpu'
+   runDCPU verbose dcpu'
 
 
-execStep :: DCPUData -> IO DCPUData
-execStep dcpu = do
+execStep :: Bool -> DCPUData -> IO DCPUData
+execStep verbose dcpu = do
    let (instruc, dcpu') = S.runState readInstruction dcpu
-   print instruc
+   when verbose $ print instruc
    return $! S.execState (execInstruction instruc) dcpu'
+
+
+dcpuFromByteString :: B.ByteString -> DCPUData
+dcpuFromByteString binary =
+   DCPUData {ram = initRam binary, regs = V.replicate numRegs 0,
+              pc = 0, sp = stackBegin, ov = 0}
+   where
+      initRam = V.unfoldrN ramSize (\bs ->
+         case B.length bs of
+              l | l >= 2    -> do (loByte, bs' ) <- B.uncons bs
+                                  (hiByte, bs'') <- B.uncons bs'
+                                  let loWord = toW16 loByte
+                                      hiWord = toW16 hiByte
+                                  return (loWord .|. (hiWord .<<. 8), bs'')
+
+                | l == 1    -> do (loByte, bs') <- B.uncons bs
+                                  return (toW16 loByte, bs')
+
+                | otherwise -> Just (0, bs))
 
 
 dcpuFromList :: [Word16] -> DCPUData
@@ -82,16 +112,6 @@ execInstruction (BasicInstruction opcode (valA, locA) valB)
    | opcode == IFB = unless (valA .&. valB /= 0) $ void readWord
 
    | otherwise = error "Unexpected case in execInstruction!"
-
-   where
-      toInt :: Integral a => a -> Int
-      toInt = fromIntegral
-
-      toW32 :: Integral a => a -> Word32
-      toW32 = fromIntegral
-
-      toW16 :: Integral a => a -> Word16
-      toW16 = fromIntegral
 
 
 execInstruction (NonBasicInstruction opcode val) =
@@ -236,3 +256,12 @@ set vector index value = runST (setM vector (fromIntegral index) value)
 
 get :: Integral a => V.Vector Word16 -> a -> Word16
 get vector index = vector ! fromIntegral index
+
+toInt :: Integral a => a -> Int
+toInt = fromIntegral
+
+toW32 :: Integral a => a -> Word32
+toW32 = fromIntegral
+
+toW16 :: Integral a => a -> Word16
+toW16 = fromIntegral
