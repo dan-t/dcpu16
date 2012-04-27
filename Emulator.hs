@@ -125,11 +125,11 @@ execInstruction (NonBasicInstruction opcode val) =
 readInstruction :: DCPU Instruction
 readInstruction = do
    word <- readWord
-   case word of
-        0x0       -> NonBasicInstruction (nonBasicOpcode $ valA word) . fst <$> readValue (valB word)
-        otherwise -> do a <- readValue $ valA word
-                        b <- fst <$> readValue (valB word)
-                        return $! BasicInstruction (opcode word) a b
+   if word .&. 0xf == 0
+      then NonBasicInstruction (nonBasicOpcode $ valA word) . fst <$> readValue (valB word)
+      else do a <- readValue $ valA word
+              b <- fst <$> readValue (valB word)
+              return $! BasicInstruction (opcode word) a b
    where
       valA = (.&. 0x3f) . (.>>. 4)
       valB = (.&. 0x3f) . (.>>. 10)
