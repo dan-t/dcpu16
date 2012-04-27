@@ -1,9 +1,18 @@
 
-Yet another emulator for the dcpu16. (http://0x10c.com/doc/dcpu-16.txt)
+Yet another parser, assembler and emulator for the dcpu16. (http://0x10c.com/doc/dcpu-16.txt)
 
-> ghci Emulator.hs
-*Emulator> runSimpleTest
-*Emulator> runDCPU $ dcpuFromList (bset bregA (blit 0x1))
+Make and Install:
+   cabal install dcpu16.cabal
+
+Assembler:
+   asm16 --help
+
+Emulator:
+   emu16 --help
+
+Example:
+   asm16 -p -o Test.bin Test.asm
+   emu16 -V Test.bin
 
 When the program ends the emulator currently stops with:
 *** Exception: Invalid non basic opcode: 0
