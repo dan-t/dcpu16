@@ -58,7 +58,7 @@ assemble prog =
 
 
 asmProgram :: P.Program -> Assembler ()
-asmProgram prog = mapM_ asmLine prog >> dumpAsmData >> resolveLabels >> dumpAsmData >> reverseBinary
+asmProgram prog = mapM_ asmLine prog >> resolveLabels >> reverseBinary
 
 asmLine :: P.Line -> Assembler ()
 asmLine line = mapM_ asmStatement line
@@ -73,16 +73,12 @@ asmStatement s@(P.Instruction opcode valueA valueB) = do
       then addValue valueB (borSndLastWord . (`shiftL` 10))
       else addValue valueB (borLastWord . (`shiftL` 10))
 
---   trace (show s ++ "\n" ++ show numWs') return ()
-
 asmStatement (P.NonBasicInstruction opcode value) = do
    addWord $ B.nonBasicOpcode opcode `shiftL` 4
    addValue value (borLastWord . (`shiftL` 10))
 
-asmStatement s@(P.Label text) = do
-   numWs <- S.gets numWords
---   trace (show s ++ "\n" ++ show numWs) return ()
-   S.modify (\s -> s {labelMap = HM.insert text (numWords s) (labelMap s)})
+asmStatement s@(P.Label text) = S.modify (\s ->
+   s {labelMap = HM.insert text (numWords s) (labelMap s)})
 
 asmStatement (P.Comment _) = return ()
 
@@ -153,6 +149,7 @@ data AsmData = AsmData {
    labelMap :: LabelMap
    } deriving (Show)
 
+dumpAsmData :: Assembler ()
 dumpAsmData = do
    asmD <- S.get
    trace (show asmD) return ()
