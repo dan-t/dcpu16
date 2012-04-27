@@ -10,7 +10,7 @@ data Emu16 = Emu16 {
 
 
 emu16 = Emu16 {
-   verbose = def &= help "print each executed instruction" &= name "V",
+   verbose = def &= help "Print each executed instruction" &= name "V",
    binary  = def &= args &= typ "BINARY_FILE"
    }
    &= summary summaryInfo
