@@ -106,10 +106,10 @@ execInstruction (BasicInstruction opcode (valA, locA) valB)
       setValue (toW16 res) locA
       S.modify (\dcpu -> dcpu {ov = toW16 ovf})
 
-   | opcode == IFE = unless (valA == valB)       $ void readWord
-   | opcode == IFN = unless (valA /= valB)       $ void readWord
-   | opcode == IFG = unless (valA >  valB)       $ void readWord
-   | opcode == IFB = unless (valA .&. valB /= 0) $ void readWord
+   | opcode == IFE = unless (valA == valB)       $ void readInstruction
+   | opcode == IFN = unless (valA /= valB)       $ void readInstruction
+   | opcode == IFG = unless (valA >  valB)       $ void readInstruction
+   | opcode == IFB = unless (valA .&. valB /= 0) $ void readInstruction
 
    | otherwise = error "Unexpected case in execInstruction!"
 
