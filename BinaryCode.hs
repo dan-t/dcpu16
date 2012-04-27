@@ -71,9 +71,9 @@ opcode opcode =
         CT.IFG -> ifg
         CT.IFB -> ifb
 
-nonBasicOpcodeM opcode =
+nonBasicOpcode opcode =
    case opcode of
-        CT.JSR -> jsrM
+        CT.JSR -> jsr
 
 reg name =
    case name of
@@ -118,6 +118,11 @@ push = 0x1a
 sp   = 0x1b
 pc   = 0x1c
 o    = 0x1d
+
+literalAtNextWord = 0x1f
+ramAtNextWord     = 0x1e
+literalOffset     = 0x20
+ramAtRegOffset    = 0x08
 
 regA = 0x00
 regB = 0x01
