@@ -64,7 +64,7 @@ asmLine :: P.Line -> Assembler ()
 asmLine line = mapM_ asmStatement line
 
 asmStatement :: P.Statement -> Assembler ()
-asmStatement s@(P.Instruction opcode valueA valueB) = do
+asmStatement (P.Instruction opcode valueA valueB) = do
    addWord $ B.opcode opcode
    numWs <- S.gets numWords
    addValue valueA (borLastWord . (`shiftL` 4))
@@ -86,7 +86,7 @@ resolveLabels :: Assembler ()
 resolveLabels = S.modify (\s ->
    let lMap = labelMap s
        bin' = L.map (either (\l -> maybe (error $ "Couldn't resolve label '" ++ show l ++ "'!")
-                                         (\v -> Right v)
+                                         Right
                                          (HM.lookup l lMap))
                             Right)
                     (binary s)
@@ -118,7 +118,7 @@ addValue (P.LabelValue text) handleWord = handleWord B.literalAtNextWord >> addL
 
 addValue (P.Literal word) handleWord
    | word > B.literalAtNextWord = handleWord B.literalAtNextWord >> addWord word
-   | otherwise   = handleWord $ word + B.literalOffset
+   | otherwise                  = handleWord $ word + B.literalOffset
 
 
 borLastWord :: Word16 -> Assembler ()
@@ -131,13 +131,11 @@ borSndLastWord word = S.modify (\s ->
 
 addWord :: Word16 -> Assembler ()
 addWord word = S.modify (\s ->
-   s {binary   = (Right word) : (binary s),
-      numWords = 1 + numWords s})
+   s {binary = (Right word) : (binary s), numWords = 1 + numWords s})
 
 addLabel :: T.Text -> Assembler ()
 addLabel label = S.modify (\s ->
-   s {binary   = (Left label) : (binary s),
-      numWords = 1 + numWords s})
+   s {binary = (Left label) : (binary s), numWords = 1 + numWords s})
 
 type Assembler = S.State AsmData
 
