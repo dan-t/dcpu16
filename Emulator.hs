@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, BangPatterns, TupleSections #-}
+{-# LANGUAGE NoMonomorphismRestriction, TupleSections #-}
 
 module Main where
 
@@ -187,7 +187,7 @@ data Instruction = BasicInstruction Opcode (Value, Location) Value
 
 instance Show Instruction where
    show (BasicInstruction opcode (valA, locA) valB) =
-      "(BasicInstruction " ++ show opcode ++ " (" ++ showHex valA "" ++ ", " ++ (show locA) ++ ") " ++ showHex valB "" ++ ")"
+      "(BasicInstruction " ++ show opcode ++ " (" ++ showHex valA "" ++ ", " ++ show locA ++ ") " ++ showHex valB "" ++ ")"
    show (NonBasicInstruction opcode val) =
       "(NonBasicInstruction " ++ show opcode ++ " " ++ showHex val "" ++ ")"
 

@@ -14,7 +14,7 @@ parse :: Text -> Program
 parse text =
    case P.feed (P.parse program text) T.empty of
         P.Fail _ cs e -> error $ "Parsing failed because of: " ++ show e ++ ", at: " ++ show cs
-        P.Partial _   -> error $ "Parsing only partially finished!"
+        P.Partial _   -> error "Parsing only partially finished!"
         P.Done _ r    -> r
 
 program :: P.Parser Program

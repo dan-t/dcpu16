@@ -133,8 +133,8 @@ regZ = 0x05
 regI = 0x06
 regJ = 0x07
 
-hex = L.intercalate " " . L.map (\w -> showHex w "")
-bin = L.intercalate " " . L.map (\w -> showIntAtBase 2 intToDigit w "")
+hex = unwords . L.map (`showHex` "")
+bin = unwords . L.map (\w -> showIntAtBase 2 intToDigit w "")
 
 (.>>.) = shiftR
 (.<<.) = shiftL

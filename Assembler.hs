@@ -28,7 +28,7 @@ main = do
 
    text <- TIO.readFile $ assembly args
    let prog = P.parse text
-   when (print_parsed args) $
+   when (printParsed args) $
       print prog
 
    let bytes = assemble prog
@@ -61,7 +61,7 @@ asmProgram :: P.Program -> Assembler ()
 asmProgram prog = mapM_ asmLine prog >> resolveLabels >> reverseBinary
 
 asmLine :: P.Line -> Assembler ()
-asmLine line = mapM_ asmStatement line
+asmLine = mapM_ asmStatement
 
 asmStatement :: P.Statement -> Assembler ()
 asmStatement (P.Instruction opcode valueA valueB) = do
@@ -123,19 +123,19 @@ addValue (P.Literal word) handleWord
 
 borLastWord :: Word16 -> Assembler ()
 borLastWord word = S.modify (\s ->
-   let ((Right h):t) = binary s in s {binary = Right (h .|. word) : t})
+   let (Right h:t) = binary s in s {binary = Right (h .|. word) : t})
 
 borSndLastWord :: Word16 -> Assembler ()
 borSndLastWord word = S.modify (\s ->
-   let (h:(Right sl):t) = binary s in s {binary = h : Right (sl .|. word) : t})
+   let (h:Right sl:t) = binary s in s {binary = h : Right (sl .|. word) : t})
 
 addWord :: Word16 -> Assembler ()
 addWord word = S.modify (\s ->
-   s {binary = (Right word) : (binary s), numWords = 1 + numWords s})
+   s {binary = Right word : binary s, numWords = 1 + numWords s})
 
 addLabel :: T.Text -> Assembler ()
 addLabel label = S.modify (\s ->
-   s {binary = (Left label) : (binary s), numWords = 1 + numWords s})
+   s {binary = Left label : binary s, numWords = 1 + numWords s})
 
 type Assembler = S.State AsmData
 
