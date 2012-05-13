@@ -119,10 +119,11 @@ sp   = 0x1b
 pc   = 0x1c
 o    = 0x1d
 
-literalAtNextWord = 0x1f
-ramAtNextWord     = 0x1e
-literalOffset     = 0x20
-ramAtRegOffset    = 0x08
+literalAtNextWord     = 0x1f
+ramAtNextWord         = 0x1e
+literalOffset         = 0x20
+ramAtRegOffset        = 0x08
+ramAtLitPlusRegOffset = 0x10
 
 regA = 0x00
 regB = 0x01

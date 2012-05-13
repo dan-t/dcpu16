@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Parser where
 
@@ -24,20 +25,21 @@ line :: P.Parser Line
 line = PC.manyTill (skipWS *> statement) (P.endOfLine <|> P.endOfInput)
 
 statement :: P.Parser Statement
-statement = instruction         <|>
-            nonBasicInstruction <|>
-            label               <|>
-            comment
+statement = instruction
+            <|> nonBasicInstruction
+            <|> label
+            <|> comment
 
 instruction :: P.Parser Statement
-instruction = Instruction <$> opcode <*>
-                 (skipWS *> value) <*>
-                 (P.char ',' *> skipWS *> value)
+instruction = Instruction
+                 <$> opcode
+                 <*> (skipWS *> value)
+                 <*> (P.char ',' *> skipWS *> value)
 
 nonBasicInstruction :: P.Parser Statement
-nonBasicInstruction = NonBasicInstruction <$>
-                         nonBasicOpcode <*>
-                         (skipWS *> value)
+nonBasicInstruction = NonBasicInstruction
+                         <$> nonBasicOpcode
+                         <*> (skipWS *> value)
 
 label :: P.Parser Statement
 label = Label <$> (P.char ':' *> P.takeWhile1 isAlpha)
@@ -46,62 +48,80 @@ comment :: P.Parser Statement
 comment = Comment <$> (P.char ';' *> skipWS *> P.takeTill P.isEndOfLine)
 
 nonBasicOpcode :: P.Parser CT.NonBasicOpcode
-nonBasicOpcode = str "JSR" *> pure CT.JSR
+nonBasicOpcode = P.string "JSR" *> pure CT.JSR
 
 opcode :: P.Parser CT.Opcode
-opcode = str "SET" *> pure CT.SET <|>
-         str "ADD" *> pure CT.ADD <|>
-         str "SUB" *> pure CT.SUB <|>
-         str "MUL" *> pure CT.MUL <|>
-         str "DIV" *> pure CT.DIV <|>
-         str "MOD" *> pure CT.MOD <|>
-         str "SHL" *> pure CT.SHL <|>
-         str "SHR" *> pure CT.SHR <|>
-         str "AND" *> pure CT.AND <|>
-         str "BOR" *> pure CT.BOR <|>
-         str "XOR" *> pure CT.XOR <|>
-         str "IFE" *> pure CT.IFE <|>
-         str "IFN" *> pure CT.IFN <|>
-         str "IFG" *> pure CT.IFG <|>
-         str "IFB" *> pure CT.IFB
+opcode = P.string "SET" *> pure CT.SET
+         <|> P.string "ADD" *> pure CT.ADD
+         <|> P.string "SUB" *> pure CT.SUB
+         <|> P.string "MUL" *> pure CT.MUL
+         <|> P.string "DIV" *> pure CT.DIV
+         <|> P.string "MOD" *> pure CT.MOD
+         <|> P.string "SHL" *> pure CT.SHL
+         <|> P.string "SHR" *> pure CT.SHR
+         <|> P.string "AND" *> pure CT.AND
+         <|> P.string "BOR" *> pure CT.BOR
+         <|> P.string "XOR" *> pure CT.XOR
+         <|> P.string "IFE" *> pure CT.IFE
+         <|> P.string "IFN" *> pure CT.IFN
+         <|> P.string "IFG" *> pure CT.IFG
+         <|> P.string "IFB" *> pure CT.IFB
 
 value :: P.Parser Value
-value = ramAt <|> register <|> sp <|> pc <|> o <|> pop <|>
-        peek <|> push <|> (Literal <$> literal) <|> labelValue
+value = ramValue
+        <|> (Register <$> register)
+        <|> sp
+        <|> pc
+        <|> o
+        <|> pop
+        <|> peek
+        <|> push
+        <|> (Literal <$> literal)
+        <|> (LabelValue <$> labelText)
 
-labelValue :: P.Parser Value
-labelValue = LabelValue <$> P.takeWhile1 isAlpha
+labelText :: P.Parser Text
+labelText = P.takeWhile1 isAlpha
 
-ramAt :: P.Parser Value
-ramAt = RAM <$> (P.char '[' *> skipWS *> value <* skipWS <* P.char ']')
+ramValue :: P.Parser Value
+ramValue = RamValue <$> (P.char '[' *> skipWS *> ramAddress <* skipWS <* P.char ']')
+
+ramAddress :: P.Parser RamAddress
+ramAddress = ((\(l, rn) -> AtLiteralPlusReg l rn) <$> literalPlusReg)
+             <|> (AtRegister <$> register)
+             <|> (AtLiteral <$> literal)
+             <|> (AtLabel <$> labelText)
+
+literalPlusReg :: P.Parser (Word16, CT.RegName)
+literalPlusReg = ((,) <$> literal <*> (plus *> register))
+                 <|> (swap <$> register <*> (plus *> literal))
+   where
+      swap = \rn l -> (l, rn)
+      plus = skipWS *> P.char '+' *> skipWS
+
 
 literal :: P.Parser Word16
-literal = (str "0x" *> P.hexadecimal) <|> P.decimal
+literal = (P.string "0x" *> P.hexadecimal) <|> P.decimal
 
-register :: P.Parser Value
-register = Register <$>
-              (P.char 'A' *> pure CT.A <|>
-               P.char 'B' *> pure CT.B <|>
-               P.char 'C' *> pure CT.C <|>
-               P.char 'X' *> pure CT.X <|>
-               P.char 'Y' *> pure CT.Y <|>
-               P.char 'Z' *> pure CT.Z <|>
-               P.char 'I' *> pure CT.I <|>
-               P.char 'J' *> pure CT.J)
+register :: P.Parser CT.RegName
+register = P.char 'A' *> pure CT.A
+           <|> P.char 'B' *> pure CT.B
+           <|> P.char 'C' *> pure CT.C
+           <|> P.char 'X' *> pure CT.X
+           <|> P.char 'Y' *> pure CT.Y
+           <|> P.char 'Z' *> pure CT.Z
+           <|> P.char 'I' *> pure CT.I
+           <|> P.char 'J' *> pure CT.J
 
-sp = str "SP" *> pure SP
-pc = str "PC" *> pure PC
+sp = P.string "SP" *> pure SP
+pc = P.string "PC" *> pure PC
 o = P.char 'O' *> pure O
-pop = str "POP" *> pure POP
-peek = str "PEEK" *> pure PEEK
-push = str "PUSH" *> pure PUSH
-
-str :: String -> P.Parser Text
-str s = P.string $ T.pack s
+pop = P.string "POP" *> pure POP
+peek = P.string "PEEK" *> pure PEEK
+push = P.string "PUSH" *> pure PUSH
 
 skipWS = P.skipWhile P.isHorizontalSpace
 
-ps parser str = P.feed (P.parse parser (T.pack str)) T.empty
+ps parser str = P.feed (P.parse parser $ T.pack str) T.empty
 
 type Program = [Line]
 
@@ -113,6 +133,10 @@ data Statement = Instruction CT.Opcode Value Value
                  | Comment Text
                  deriving (Show)
 
-data Value = RAM Value | Register CT.RegName | SP | PC | O |
-             POP | PEEK | PUSH | Literal Word16 | LabelValue Text
+data Value = RamValue RamAddress | Register CT.RegName | SP | PC | O
+             | POP | PEEK | PUSH | Literal Word16 | LabelValue Text
              deriving (Show)
+
+data RamAddress = AtLiteral Word16 | AtRegister CT.RegName | AtLabel Text
+                  | AtLiteralPlusReg Word16 CT.RegName
+                  deriving (Show)

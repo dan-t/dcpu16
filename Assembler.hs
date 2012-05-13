@@ -98,14 +98,12 @@ reverseBinary :: Assembler ()
 reverseBinary = S.modify (\s -> s {binary = L.reverse (binary s)})
 
 addValue :: P.Value -> (Word16 -> Assembler ()) -> Assembler ()
-addValue v@(P.RAM value) handleWord =
-   case value of
-        P.RAM _         -> invalidAsmValue
-        P.Register name -> handleWord $ B.reg name + B.ramAtRegOffset
-        P.Literal word  -> handleWord B.ramAtNextWord >> addWord word
-        otherwise       -> handleWord B.ramAtNextWord >> addValue value addWord
-   where
-      invalidAsmValue = error $ "Invalid assembler value: " ++ show v
+addValue (P.RamValue address) handleWord =
+   case address of
+        P.AtLiteral lit            -> handleWord B.ramAtNextWord >> addWord lit
+        P.AtRegister reg           -> handleWord $ B.reg reg + B.ramAtRegOffset
+        P.AtLabel text             -> handleWord B.ramAtNextWord >> addLabel text
+        P.AtLiteralPlusReg lit reg -> (handleWord $ B.reg reg + B.ramAtLitPlusRegOffset) >> addWord lit
 
 addValue (P.Register name)   handleWord = handleWord $ B.reg name
 addValue (P.SP)              handleWord = handleWord B.sp
