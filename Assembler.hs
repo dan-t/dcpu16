@@ -103,7 +103,7 @@ addValue (P.RamValue address) handleWord =
         P.AtLiteral lit            -> handleWord B.ramAtNextWord >> addWord lit
         P.AtRegister reg           -> handleWord $ B.reg reg + B.ramAtRegOffset
         P.AtLabel text             -> handleWord B.ramAtNextWord >> addLabel text
-        P.AtLiteralPlusReg lit reg -> (handleWord $ B.reg reg + B.ramAtLitPlusRegOffset) >> addWord lit
+        P.AtLiteralPlusReg lit reg -> handleWord (B.reg reg + B.ramAtLitPlusRegOffset) >> addWord lit
 
 addValue (P.Register name)   handleWord = handleWord $ B.reg name
 addValue (P.SP)              handleWord = handleWord B.sp

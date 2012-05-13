@@ -86,7 +86,7 @@ ramValue :: P.Parser Value
 ramValue = RamValue <$> (P.char '[' *> skipWS *> ramAddress <* skipWS <* P.char ']')
 
 ramAddress :: P.Parser RamAddress
-ramAddress = ((\(l, rn) -> AtLiteralPlusReg l rn) <$> literalPlusReg)
+ramAddress = (uncurry AtLiteralPlusReg <$> literalPlusReg)
              <|> (AtRegister <$> register)
              <|> (AtLiteral <$> literal)
              <|> (AtLabel <$> labelText)
@@ -95,7 +95,7 @@ literalPlusReg :: P.Parser (Word16, CT.RegName)
 literalPlusReg = ((,) <$> literal <*> (plus *> register))
                  <|> (swap <$> register <*> (plus *> literal))
    where
-      swap = \rn l -> (l, rn)
+      swap rn l = (l, rn)
       plus = skipWS *> P.char '+' *> skipWS
 
 
