@@ -1,4 +1,3 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module BinaryCode where
 
@@ -15,6 +14,7 @@ import Prelude hiding (div, mod, and)
 type BinaryCode = Writer (DL.DList Word16)
 binaryCode = DL.toList . execWriter
 
+setM, addM, subM, mulM, divM, modM, shlM, shrM, andM, borM, xorM, ifeM, ifnM, ifgM, ifbM :: Word32 -> Word32 -> BinaryCode()
 setM = basicInstrucM set
 addM = basicInstrucM add
 subM = basicInstrucM sub
@@ -42,6 +42,7 @@ basicInstrucM opcode a b
       nextWordA = a .&. 0xffff0000 /= 0
       nextWordB = b .&. 0xffff0000 /= 0
 
+jsrM :: Word32 -> BinaryCode ()
 jsrM = nonBasicInstrucM jsr
 
 nonBasicInstrucM :: Word16 -> Word32 -> BinaryCode ()
@@ -53,6 +54,7 @@ nonBasicInstrucM opcode a
       secondWord = toW16 $ a .>>. 16
       nextWordA  = a .&. 0xffff0000 /= 0
 
+opcode :: Num a => CT.Opcode -> a
 opcode opcode =
    case opcode of
         CT.SET -> set
@@ -71,10 +73,12 @@ opcode opcode =
         CT.IFG -> ifg
         CT.IFB -> ifb
 
+nonBasicOpcode :: Num a => CT.NonBasicOpcode -> a
 nonBasicOpcode opcode =
    case opcode of
         CT.JSR -> jsr
 
+reg :: Num a => CT.RegName -> a
 reg name =
    case name of
         CT.A -> regA
@@ -94,6 +98,7 @@ lit i
    | i > 0x1f  = (i .<<. 16) .|. 0x1f
    | otherwise = i + 0x20
 
+set, add, sub, mul, div, mod, shl, shr, and, bor, xor, ife, ifn, ifg, ifb :: Num a => a
 set = 0x1
 add = 0x2
 sub = 0x3
@@ -110,8 +115,10 @@ ifn = 0xd
 ifg = 0xe
 ifb = 0xf
 
+jsr :: Num a => a
 jsr = 0x01
 
+pop, peek, push, sp, pc, o :: Num a => a
 pop  = 0x18
 peek = 0x19
 push = 0x1a
@@ -119,12 +126,14 @@ sp   = 0x1b
 pc   = 0x1c
 o    = 0x1d
 
+literalAtNextWord, ramAtNextWord, literalOffset, ramAtRegOffset, ramAtLitPlusRegOffset :: Num a => a
 literalAtNextWord     = 0x1f
 ramAtNextWord         = 0x1e
 literalOffset         = 0x20
 ramAtRegOffset        = 0x08
 ramAtLitPlusRegOffset = 0x10
 
+regA, regB, regC, regX, regY, regZ, regI, regJ :: Num a => a
 regA = 0x00
 regB = 0x01
 regC = 0x02
@@ -137,6 +146,7 @@ regJ = 0x07
 hex = unwords . L.map (`showHex` "")
 bin = unwords . L.map (\w -> showIntAtBase 2 intToDigit w "")
 
+(.>>.), (.<<.) :: Bits a => a -> Int -> a
 (.>>.) = shiftR
 (.<<.) = shiftL
 

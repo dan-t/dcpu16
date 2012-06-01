@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction, TupleSections #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main where
 
@@ -233,6 +233,7 @@ videoRam   = (0x8000, 0x8400)
 numRegs    = 8
 stackBegin = 0xffff
 
+(.>>.), (.<<.) :: Bits a => a -> Int -> a
 (.>>.) = shiftR
 (.<<.) = shiftL
 
