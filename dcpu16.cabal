@@ -1,16 +1,35 @@
-Name:          dcpu16
-Version:       0.1
-Author:        Daniel Trstenjak
-Maintainer:    daniel.trstenjak@gmail.com
-Build-Type:    Simple
-Cabal-Version: >=1.6
-
-Executable emu16
-  Main-is:       Emulator.hs
-  ghc-options:   -O2 -funbox-strict-fields
-  Build-Depends: base >= 3 && < 5, mtl >= 2.0.1.0 && < 2.1, bytestring >= 0.9.1.10 && < 1.0, vector >= 0.9.1 && < 1.0, cmdargs >= 0.9.5 && < 1.0, dlist >= 0.5 && < 0.6
-
-Executable asm16
-  Main-is:       Assembler.hs
-  ghc-options:   -O2 -funbox-strict-fields
-  Build-Depends: base >= 3 && < 5, mtl >= 2.0.1.0 && < 2.1, bytestring >= 0.9.1.10 && < 1.0, cmdargs >= 0.9.5 && < 1.0, unordered-containers >= 0.2.1.0 && < 0.3, text >= 0.11.1.13 && < 0.12, attoparsec >= 0.10.1.0 && < 0.11, hashable >= 1.1.2.3 && < 1.2
+name: dcpu16
+version: 0.1
+cabal-version: >=1.6
+build-type: Simple
+license: AllRightsReserved
+maintainer: daniel.trstenjak@gmail.com
+author: Daniel Trstenjak
+ 
+executable emu16
+    build-depends:
+        base >=3 && <5,
+        mtl >=2.0.1.0 && <2.2,
+        bytestring >=0.9.1.10 && <0.11,
+        vector >=0.9.1 && <0.11,
+        cmdargs >=0.9.5 && <0.11,
+        dlist >=0.5 && <0.8
+    main-is: Emulator.hs
+    buildable: True
+    ghc-options: -O2 -funbox-strict-fields
+ 
+executable asm16
+    build-depends:
+        base >=3 && <5,
+        mtl >=2.0.1.0 && <2.2,
+        bytestring >=0.9.1.10 && <0.11,
+        cmdargs >=0.9.5 && <0.11,
+        unordered-containers >=0.2.1.0 && <0.3,
+        text >=0.11.1.13 && <1.2,
+        attoparsec >=0.10.1.0 && <0.13,
+        hashable >=1.1.2.3 && <1.3
+    main-is: Assembler.hs
+    buildable: True
+    ghc-options: -O2 -funbox-strict-fields
+ 
+ 
